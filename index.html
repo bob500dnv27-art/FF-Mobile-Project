@@ -1,46 +1,21 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>BR Mobile v1.3</title>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>BR Mobile v1.5</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#8bb6ad;font-family:system-ui;color:white}canvas{display:block;width:100%;height:100%;touch-action:none}#hud{position:fixed;inset:0;pointer-events:none;text-shadow:0 2px 4px #000}.panel{background:#071b22c9;border:1px solid #ffffff55;border-radius:10px;padding:8px 11px}#top{position:absolute;top:10px;left:10px;font-size:12px}#stats{position:absolute;top:10px;left:50%;transform:translateX(-50%);font-size:12px;white-space:nowrap}#help{position:absolute;right:10px;top:10px;font-size:11px;text-align:right}button{pointer-events:auto;color:white;background:#102c35dd;border:1px solid #ffffff99;border-radius:12px;padding:12px;font-weight:700}#camera{position:absolute;right:12px;bottom:102px}#fire{position:absolute;right:20px;bottom:22px;width:78px;height:78px;border-radius:50%;background:#a83d32}#stick{pointer-events:auto;position:absolute;left:22px;bottom:25px;width:116px;height:116px;border:2px solid #ffffff99;border-radius:50%;background:#0b263655;touch-action:none}#nub{position:absolute;left:34px;top:34px;width:44px;height:44px;border-radius:50%;background:#ffffffbb}#cross{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:27px}#message{position:absolute;left:50%;top:58%;transform:translate(-50%,-50%);font-size:13px;white-space:nowrap}#reload{position:absolute;right:110px;bottom:35px}
 </style></head><body><canvas id="game"></canvas><div id="hud">
-<div id="top" class="panel"><b>BR MOBILE · v1.3</b><br>Campo de treinamento<br><span id="status">Preparando…</span></div>
+<div id="top" class="panel"><b>BR MOBILE · v1.5</b><br>Campo de treinamento<br><span id="status">Preparando…</span></div>
 <div id="stats" class="panel">VIDA 100　|　MUNIÇÃO <b id="ammo">30</b>/30　|　ROBÔS <b id="botsLeft">4</b></div>
 <div id="help" class="panel">Arraste a tela: olhar<br>Joystick: mover</div><div id="cross">+</div><div id="message" class="panel">Treinamento: acerte os robôs!</div>
 <div id="stick"><div id="nub"></div></div><button id="camera">1ª / 3ª pessoa</button><button id="reload">RECARREGAR</button><button id="fire">ATIRAR</button></div>
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 function canvasTex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return t}
-const skyTex=canvasTex(2048,1024,(g,w,h)=>{
- const sky=g.createLinearGradient(0,0,0,h);
- sky.addColorStop(0,'#174d78');sky.addColorStop(.28,'#438db2');sky.addColorStop(.58,'#91c9d4');sky.addColorStop(.82,'#d6d9c2');sky.addColorStop(1,'#f0d9ad');
- g.fillStyle=sky;g.fillRect(0,0,w,h);
- // Brilho atmosférico quente próximo ao horizonte
- const glow=g.createRadialGradient(w*.69,h*.64,8,w*.69,h*.64,h*.48);
- glow.addColorStop(0,'rgba(255,239,198,.48)');glow.addColorStop(.35,'rgba(255,231,185,.18)');glow.addColorStop(1,'rgba(255,231,185,0)');
- g.fillStyle=glow;g.fillRect(0,0,w,h);
- // Nuvens tropicais volumétricas: camadas suaves, sombra inferior e bordas iluminadas
- let seed=73421;const rnd=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
- for(let layer=0;layer<3;layer++){
-  const count=[34,48,38][layer];
-  for(let i=0;i<count;i++){
-   const x=rnd()*w,y=h*(.22+rnd()*.43),rx=(90+rnd()*190)*(layer===2?.7:1),ry=(22+rnd()*55)*(layer===2?.55:1);
-   const a=.055+rnd()*.075;
-   const shade=g.createRadialGradient(x,y+ry*.18,ry*.08,x,y,rx);
-   shade.addColorStop(0,layer===2?'rgba(255,255,255,'+(a*.65)+')':'rgba(255,255,255,'+a+')');
-   shade.addColorStop(.58,'rgba(255,255,255,'+(a*.62)+')');shade.addColorStop(1,'rgba(255,255,255,0)');
-   g.fillStyle=shade;g.beginPath();g.ellipse(x,y,rx,ry,0,0,Math.PI*2);g.fill();
-   if(layer!==2){g.fillStyle='rgba(91,123,133,'+(a*.42)+')';g.beginPath();g.ellipse(x+rx*.08,y+ry*.38,rx*.72,ry*.42,0,0,Math.PI*2);g.fill()}
-   for(let p=0;p<5;p++){const px=x+(rnd()-.5)*rx*1.45,py=y+(rnd()-.5)*ry*.8,pr=18+rnd()*48;
-    const puff=g.createRadialGradient(px-pr*.2,py-pr*.25,2,px,py,pr);
-    puff.addColorStop(0,'rgba(255,255,255,'+(a*1.8)+')');puff.addColorStop(1,'rgba(255,255,255,0)');
-    g.fillStyle=puff;g.beginPath();g.arc(px,py,pr,0,Math.PI*2);g.fill();
-   }
-  }
- }
- // Véus finos de cirros em altitude
- for(let i=0;i<95;i++){const x=rnd()*w,y=h*(.12+rnd()*.25);g.globalAlpha=.025+rnd()*.045;g.strokeStyle='#fff';g.lineWidth=1+rnd()*3;g.beginPath();g.moveTo(x,y);g.bezierCurveTo(x+45,y-9,x+105,y+8,x+190+rnd()*100,y-5);g.stroke()}
- g.globalAlpha=1;
-});skyTex.mapping=THREE.EquirectangularReflectionMapping;
+// Céu fotográfico panorâmico CC0 do Poly Haven (Cloud Layers, 2K JPG).
+// Não é gerado por canvas: o jogo carrega uma imagem real com nuvens fotografadas.
+const skyLoader=new THREE.TextureLoader();skyLoader.setCrossOrigin('anonymous');
+const skyTex=skyLoader.load('https://dl.polyhaven.org/file/ph-assets/HDRIs/jpg/2k/cloud_layers_2k.jpg');
+skyTex.colorSpace=THREE.SRGBColorSpace;
+skyTex.mapping=THREE.EquirectangularReflectionMapping;
 const scene=new THREE.Scene();scene.background=skyTex;scene.fog=new THREE.Fog(0xa9cbd0,82,205);
 const camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.1,250);
 const renderer=new THREE.WebGLRenderer({canvas:document.querySelector('#game'),antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;
