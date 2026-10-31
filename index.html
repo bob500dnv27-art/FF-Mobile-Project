@@ -1,14 +1,15 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>BR Mobile v4.0</title>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>BR Mobile v5.0</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#8bb6ad;font-family:system-ui;color:white}canvas{display:block;width:100%;height:100%;touch-action:none}#hud{position:fixed;inset:0;pointer-events:none;text-shadow:0 2px 4px #000}.panel{background:#071b22c9;border:1px solid #ffffff55;border-radius:10px;padding:8px 11px}#top{position:absolute;top:10px;left:10px;font-size:12px}#stats{position:absolute;top:10px;left:50%;transform:translateX(-50%);font-size:12px;white-space:nowrap}#help{position:absolute;right:10px;top:10px;font-size:11px;text-align:right}button{pointer-events:auto;color:white;background:#102c35dd;border:1px solid #ffffff99;border-radius:12px;padding:12px;font-weight:700}#camera{position:absolute;right:12px;bottom:102px}#fire{position:absolute;right:20px;bottom:22px;width:78px;height:78px;border-radius:50%;background:#a83d32}#stick{pointer-events:auto;position:absolute;left:22px;bottom:25px;width:116px;height:116px;border:2px solid #ffffff99;border-radius:50%;background:#0b263655;touch-action:none}#nub{position:absolute;left:34px;top:34px;width:44px;height:44px;border-radius:50%;background:#ffffffbb}#cross{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:27px}#message{position:absolute;left:50%;top:58%;transform:translate(-50%,-50%);font-size:13px;white-space:nowrap}#reload{position:absolute;right:110px;bottom:35px}#stats{max-width:96vw;overflow:hidden;font-size:11px}#message{top:64%;}#life.low{color:#ff766d}
 </style></head><body><canvas id="game"></canvas><div id="hud">
-<div id="top" class="panel"><b>BR MOBILE · v4.0</b><br>Campo de treinamento<br><span id="status">Preparando…</span></div>
+<div id="top" class="panel"><b>BR MOBILE · v5.0</b><br>Campo de treinamento<br><span id="status">Preparando…</span></div>
 <div id="stats" class="panel">VIDA <b id="life">100</b>　|　MUNIÇÃO <b id="ammo">30</b>/30　|　ROBÔS <b id="botsLeft">4</b>　|　ELIMINAÇÕES <b id="kills">0</b></div>
 <div id="help" class="panel">Arraste: mirar<br>Joystick: mover<br>Botão vermelho: disparar</div><div id="cross">+</div><div id="message" class="panel">MISSÃO: sobreviva e elimine os robôs!</div>
 <div id="stick"><div id="nub"></div></div><button id="camera">1ª / 3ª pessoa</button><button id="reload">RECARREGAR</button><button id="fire">ATIRAR</button></div>
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
 function canvasTex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return t}
 // Céu de videogame: dome com gradiente azul e nuvens volumétricas estilizadas.
 // Remove o HDRI fotográfico que trazia árvores e paisagem real no horizonte.
@@ -172,7 +173,39 @@ function soldier(colors={shirt:0x344c60,pants:0x26313a,skin:0xc58f6b,gear:0x354b
 const player=soldier();scene.add(player);player.position.set(0,0,0);
 let yaw=0,pitch=-.08,first=false;const keys={};addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key.toLowerCase()==='c')toggle()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
 function toggle(){first=!first;player.visible=!first;document.querySelector('#status').textContent=first?'Primeira pessoa':'Terceira pessoa'}document.querySelector('#camera').onclick=toggle;
-const bots=[];for(let i=0;i<4;i++){const bot=soldier({shirt:[0x8b4437,0x6d4930,0x394e68,0x66503c][i],pants:0x34383d,skin:0xb98565,gear:0x5c332b});const home=new THREE.Vector3([-8,7,-5,12][i],0,[-19,-27,-36,-24][i]);bot.position.copy(home);scene.add(bot);bots.push({mesh:bot,home,phase:i*1.7,radius:2.8+i%2,hp:3,alive:true,nextShot:1.2+i*.65,alert:false})}
+const bots=[];const npcLoader=new GLTFLoader();
+const npcModels=[
+ 'https://gobkit.com/freebies/human004/ArmyOfficer.glb',
+ 'https://gobkit.com/freebies/human004/ArmySniper.glb',
+ 'https://gobkit.com/freebies/human004/CombatMedic.glb',
+ 'https://gobkit.com/freebies/human004/Rifleman.glb'
+];
+function setNPCAction(bot,name,once=false){
+ if(!bot.animMixer||!bot.animActions)return;
+ const next=bot.animActions[name]||bot.animActions.Idle;if(!next||bot.currentAction===next)return;
+ if(bot.currentAction){bot.currentAction.fadeOut(.16)}
+ next.reset().fadeIn(.16);next.setLoop(once?THREE.LoopOnce:THREE.LoopRepeat,once?1:Infinity);next.clampWhenFinished=once;next.play();bot.currentAction=next;bot.currentActionName=name;
+}
+for(let i=0;i<4;i++){
+ const placeholder=soldier({shirt:[0x8b4437,0x6d4930,0x394e68,0x66503c][i],pants:0x34383d,skin:0xb98565,gear:0x5c332b});
+ const home=new THREE.Vector3([-8,7,-5,12][i],0,[-19,-27,-36,-24][i]);placeholder.position.copy(home);scene.add(placeholder);
+ const bot={mesh:placeholder,placeholder,home,phase:i*1.7,radius:2.8+i%2,hp:3,alive:true,nextShot:1.2+i*.65,alert:false,animMixer:null,animActions:null,currentAction:null,currentActionName:'Idle',attackTimer:0};
+ bots.push(bot);
+ npcLoader.load(npcModels[i],gltf=>{
+  if(!bot.alive)return;
+  const model=gltf.scene;
+  model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material){o.material.side=THREE.FrontSide;o.material.needsUpdate=true;}}});
+  const bounds=new THREE.Box3().setFromObject(model),size=bounds.getSize(new THREE.Vector3());
+  if(size.y>0){const scale=2.12/size.y;model.scale.setScalar(scale);const scaledBounds=new THREE.Box3().setFromObject(model);model.position.y-=scaledBounds.min.y;}
+  model.rotation.y=Math.PI;
+  model.position.x=0;model.position.z=0;
+  const root=new THREE.Group();root.add(model);root.position.copy(bot.home);
+  scene.add(root);scene.remove(bot.placeholder);bot.mesh=root;
+  bot.animMixer=new THREE.AnimationMixer(model);bot.animActions={};
+  for(const clip of gltf.animations){const action=bot.animMixer.clipAction(clip);bot.animActions[clip.name]=action;}
+  setNPCAction(bot,'Idle');
+ },undefined,err=>console.warn('NPC GLB não carregou; mantendo personagem reserva:',npcModels[i],err));
+}
 let drag=null;const canvas=renderer.domElement;canvas.addEventListener('pointerdown',e=>{if(e.clientX>innerWidth*.28){drag={x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId)}});canvas.addEventListener('pointermove',e=>{if(drag){yaw-=(e.clientX-drag.x)*.005;pitch=Math.max(-.65,Math.min(.45,pitch-(e.clientY-drag.y)*.003));drag={x:e.clientX,y:e.clientY}}});canvas.addEventListener('pointerup',()=>drag=null);
 let mx=0,my=0;const stick=document.querySelector('#stick'),nub=document.querySelector('#nub');function stickMove(e){const r=stick.getBoundingClientRect(),x=e.clientX-r.left-r.width/2,y=e.clientY-r.top-r.height/2,d=Math.min(38,Math.hypot(x,y)),a=Math.atan2(y,x);mx=Math.cos(a)*d/38;my=Math.sin(a)*d/38;nub.style.transform='translate('+mx*35+'px,'+my*35+'px)'}function reset(){mx=my=0;nub.style.transform=''}stick.addEventListener('pointerdown',e=>{stick.setPointerCapture(e.pointerId);stickMove(e)});stick.addEventListener('pointermove',e=>{if(e.buttons)stickMove(e)});stick.addEventListener('pointerup',reset);stick.addEventListener('pointercancel',reset);
 let ammo=30,life=100,kills=0,playerHitCooldown=0,shotCooldown=0;const bullets=[],enemyBullets=[];function updateHUD(){document.querySelector("#life").textContent=life;document.querySelector("#life").classList.toggle("low",life<35);document.querySelector("#ammo").textContent=ammo;document.querySelector("#kills").textContent=kills;document.querySelector("#botsLeft").textContent=bots.filter(b=>b.alive).length}function reload(){if(ammo===30)return;ammo=30;updateHUD();document.querySelector("#status").textContent="Carregador completo"}document.querySelector("#reload").onclick=reload;
@@ -187,8 +220,10 @@ if(arms.length===2){arms[0].rotation.x=-swing*.42;arms[1].rotation.x=swing*.42}
 player.position.y=moving?Math.abs(Math.sin(walkPhase*2))*.045:0;
 if(player.userData.rifle)player.userData.rifle.rotation.x=-.08+Math.sin(walkPhase)*.025;
 // IA de combate: patrulha, detecta o jogador, avança e dispara em linha de visão aproximada.
- const patrolTime=clock.elapsedTime;for(const bot of bots){if(!bot.alive)continue;const toPlayer=player.position.clone().sub(bot.mesh.position);const dist=toPlayer.length();bot.alert=dist<43;let dx=0,dz=0;if(bot.alert&&dist>11){dx=toPlayer.x/dist;dz=toPlayer.z/dist;bot.mesh.position.x+=dx*dt*1.65;bot.mesh.position.z+=dz*dt*1.65}else if(!bot.alert){const a=patrolTime*.42+bot.phase,nx=bot.home.x+Math.cos(a)*bot.radius,nz=bot.home.z+Math.sin(a)*bot.radius;dx=nx-bot.mesh.position.x;dz=nz-bot.mesh.position.z;bot.mesh.position.x=nx;bot.mesh.position.z=nz}if(Math.hypot(dx,dz)>.001)bot.mesh.rotation.y=Math.atan2(-dx,-dz);const anim=bot.mesh.userData.anim,swing=Math.sin(patrolTime*4+bot.phase)*.28;if(anim?.legs?.length===2){anim.legs[0].rotation.x=swing;anim.legs[1].rotation.x=-swing}if(anim?.arms?.length===2){anim.arms[0].rotation.x=-swing*.35;anim.arms[1].rotation.x=swing*.35}bot.nextShot-=dt;if(bot.alert&&dist<36&&bot.nextShot<=0&&life>0){bot.nextShot=1.65+Math.random()*.8;const dir=toPlayer.normalize();const start=bot.mesh.position.clone().add(new THREE.Vector3(0,1.45,0)).add(dir.clone().multiplyScalar(.8));const orb=new THREE.Mesh(new THREE.SphereGeometry(.11,10,8),M(0xff684f,.35));orb.position.copy(start);scene.add(orb);enemyBullets.push({mesh:orb,dir,life:2.2})}}
- for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];b.mesh.position.addScaledVector(b.dir,dt*42);b.life-=dt;let hit=false;for(const bot of bots){if(bot.alive){const center=bot.mesh.position.clone().add(new THREE.Vector3(0,1.2,0));if(b.mesh.position.distanceTo(center)<.85){bot.hp--;hit=true;if(bot.hp<=0){bot.alive=false;bot.mesh.visible=false;kills++;updateHUD();document.querySelector("#status").textContent="Robô eliminado!";if(kills===4)document.querySelector("#message").textContent="ÁREA LIMPA! Você venceu esta rodada."}else document.querySelector("#status").textContent="Acertou! Restam "+bot.hp+" pontos";break}}}if(hit||b.life<=0){scene.remove(b.mesh);bullets.splice(i,1)}}
+ const patrolTime=clock.elapsedTime;for(const bot of bots){if(!bot.alive)continue;const toPlayer=player.position.clone().sub(bot.mesh.position);const dist=toPlayer.length();bot.alert=dist<43;let dx=0,dz=0;if(bot.alert&&dist>11){dx=toPlayer.x/dist;dz=toPlayer.z/dist;bot.mesh.position.x+=dx*dt*1.65;bot.mesh.position.z+=dz*dt*1.65}else if(!bot.alert){const a=patrolTime*.42+bot.phase,nx=bot.home.x+Math.cos(a)*bot.radius,nz=bot.home.z+Math.sin(a)*bot.radius;dx=nx-bot.mesh.position.x;dz=nz-bot.mesh.position.z;bot.mesh.position.x=nx;bot.mesh.position.z=nz}if(Math.hypot(dx,dz)>.001)bot.mesh.rotation.y=Math.atan2(-dx,-dz);const anim=bot.mesh.userData.anim,swing=Math.sin(patrolTime*4+bot.phase)*.28;if(anim?.legs?.length===2){anim.legs[0].rotation.x=swing;anim.legs[1].rotation.x=-swing}if(anim?.arms?.length===2){anim.arms[0].rotation.x=-swing*.35;anim.arms[1].rotation.x=swing*.35}
+ if(bot.animMixer){bot.animMixer.update(dt);bot.attackTimer=Math.max(0,bot.attackTimer-dt);if(bot.attackTimer<=0)setNPCAction(bot,bot.alert&&dist>11?'Run':(Math.hypot(dx,dz)>.08?'Walk':'Idle'))}
+ bot.nextShot-=dt;if(bot.alert&&dist<36&&bot.nextShot<=0&&life>0){bot.nextShot=1.65+Math.random()*.8;bot.attackTimer=.72;setNPCAction(bot,'Attack',true);const dir=toPlayer.normalize();const start=bot.mesh.position.clone().add(new THREE.Vector3(0,1.45,0)).add(dir.clone().multiplyScalar(.8));const orb=new THREE.Mesh(new THREE.SphereGeometry(.11,10,8),M(0xff684f,.35));orb.position.copy(start);scene.add(orb);enemyBullets.push({mesh:orb,dir,life:2.2})}}
+ for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];b.mesh.position.addScaledVector(b.dir,dt*42);b.life-=dt;let hit=false;for(const bot of bots){if(bot.alive){const center=bot.mesh.position.clone().add(new THREE.Vector3(0,1.2,0));if(b.mesh.position.distanceTo(center)<.85){bot.hp--;hit=true;if(bot.hp<=0){bot.alive=false;if(bot.animMixer){setNPCAction(bot,'Death',true);setTimeout(()=>{bot.mesh.visible=false},1500)}else bot.mesh.visible=false;kills++;updateHUD();document.querySelector("#status").textContent="Robô eliminado!";if(kills===4)document.querySelector("#message").textContent="ÁREA LIMPA! Você venceu esta rodada."}else document.querySelector("#status").textContent="Acertou! Restam "+bot.hp+" pontos";break}}}if(hit||b.life<=0){scene.remove(b.mesh);bullets.splice(i,1)}}
 // Projéteis inimigos causam dano; o breve intervalo evita dano instantâneo em sequência.
  for(let i=enemyBullets.length-1;i>=0;i--){const b=enemyBullets[i];b.mesh.position.addScaledVector(b.dir,dt*19);b.life-=dt;if(b.mesh.position.distanceTo(player.position.clone().add(new THREE.Vector3(0,1.1,0)))<.85&&playerHitCooldown<=0){life=Math.max(0,life-12);playerHitCooldown=.7;updateHUD();document.querySelector("#status").textContent=life===0?"Você foi derrubado! Atualize a página para reiniciar.":"Você foi atingido!";scene.remove(b.mesh);enemyBullets.splice(i,1);continue}if(b.life<=0){scene.remove(b.mesh);enemyBullets.splice(i,1)}}
  let target=player.position.clone().add(new THREE.Vector3(0,first?1.65:2.0,0));if(first){camera.position.copy(target)}else{camera.position.copy(target).add(new THREE.Vector3(Math.sin(yaw)*6,2.25,Math.cos(yaw)*6))}camera.lookAt(target.clone().add(new THREE.Vector3(-Math.sin(yaw)*18,Math.sin(pitch)*18,-Math.cos(yaw)*18)));renderer.render(scene,camera)}
