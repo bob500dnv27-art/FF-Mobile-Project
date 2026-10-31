@@ -90,7 +90,7 @@ characterLoader.load(soldierAsset,(gltf)=>{
    const idle=THREE.AnimationClip.findByName(clips,'idle')||clips.find(a=>/idle/i.test(a.name));
    const chosen=isPlayer?(walk||run):(idle||walk);
    if(chosen)mixer.clipAction(chosen).reset().play();
-   characterMixers.push({mixer,walk,run,isPlayer});
+   characterMixers.push({mixer,walk,run,idle,isPlayer,active:null});
    holder.userData.realModel=model;
  });
  installCharacter(player,true);
@@ -106,7 +106,7 @@ let ammo=30;const bullets=[];function reload(){ammo=30;document.querySelector('#
 function shoot(){if(!ammo){document.querySelector('#status').textContent='Sem munição · recarregue';return}ammo--;document.querySelector('#ammo').textContent=ammo;
 const dir=new THREE.Vector3(-Math.sin(yaw),Math.sin(pitch),-Math.cos(yaw)).normalize();const start=player.position.clone().add(new THREE.Vector3(0,1.48,0)).add(dir.clone().multiplyScalar(.9));const mesh=new THREE.Mesh(new THREE.SphereGeometry(.075,8,8),M(0xffd36a));mesh.position.copy(start);scene.add(mesh);bullets.push({mesh,dir,life:2.5})}
 document.querySelector('#fire').onclick=shoot;
-const clock=new THREE.Clock();let walkPhase=0;function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);characterMixers.forEach(entry=>{const moving=entry.isPlayer&&((mx*mx+my*my)>.02||keys.w||keys.a||keys.s||keys.d||keys.arrowup||keys.arrowdown||keys.arrowleft||keys.arrowright);const clip=moving?(entry.run||entry.walk):(entry.isPlayer?null:null);if(clip){entry.mixer.clipAction(clip).play()}entry.mixer.update(dt)});const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));let v=forward.multiplyScalar((keys.w||keys.arrowup?-1:0)+(keys.s||keys.arrowdown?1:0)-my).add(right.multiplyScalar((keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+mx));if(v.length()>1)v.normalize();player.position.addScaledVector(v,dt*6);const moving=v.lengthSq()>.015;if(moving)player.rotation.y=Math.atan2(-v.x,-v.z);
+const clock=new THREE.Clock();let walkPhase=0;function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);characterMixers.forEach(entry=>{const moving=entry.isPlayer&&((mx*mx+my*my)>.02||keys.w||keys.a||keys.s||keys.d||keys.arrowup||keys.arrowdown||keys.arrowleft||keys.arrowright);const clip=moving?(keys.shift&&entry.run?entry.run:entry.walk):(entry.idle||null);if(clip&&entry.active!==clip){if(entry.active)entry.mixer.clipAction(entry.active).fadeOut(.12);entry.active=clip;entry.mixer.clipAction(clip).reset().fadeIn(.12).play()}entry.mixer.update(dt)});const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));let v=forward.multiplyScalar((keys.w||keys.arrowup?-1:0)+(keys.s||keys.arrowdown?1:0)-my).add(right.multiplyScalar((keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0)+mx));if(v.length()>1)v.normalize();player.position.addScaledVector(v,dt*6);const moving=v.lengthSq()>.015;if(moving)player.rotation.y=Math.atan2(-v.x,-v.z);
 if(moving){walkPhase+=dt*10}else{walkPhase*=Math.max(0,1-dt*7)}
 const swing=Math.sin(walkPhase)*.48,legs=player.userData.anim.legs,arms=player.userData.anim.arms;
 if(legs.length===2){legs[0].rotation.x=swing;legs[1].rotation.x=-swing}
