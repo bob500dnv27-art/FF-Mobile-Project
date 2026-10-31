@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>BR Mobile v2.5</title>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>BR Mobile v3.0</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#8bb6ad;font-family:system-ui;color:white}canvas{display:block;width:100%;height:100%;touch-action:none}#hud{position:fixed;inset:0;pointer-events:none;text-shadow:0 2px 4px #000}.panel{background:#071b22c9;border:1px solid #ffffff55;border-radius:10px;padding:8px 11px}#top{position:absolute;top:10px;left:10px;font-size:12px}#stats{position:absolute;top:10px;left:50%;transform:translateX(-50%);font-size:12px;white-space:nowrap}#help{position:absolute;right:10px;top:10px;font-size:11px;text-align:right}button{pointer-events:auto;color:white;background:#102c35dd;border:1px solid #ffffff99;border-radius:12px;padding:12px;font-weight:700}#camera{position:absolute;right:12px;bottom:102px}#fire{position:absolute;right:20px;bottom:22px;width:78px;height:78px;border-radius:50%;background:#a83d32}#stick{pointer-events:auto;position:absolute;left:22px;bottom:25px;width:116px;height:116px;border:2px solid #ffffff99;border-radius:50%;background:#0b263655;touch-action:none}#nub{position:absolute;left:34px;top:34px;width:44px;height:44px;border-radius:50%;background:#ffffffbb}#cross{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:27px}#message{position:absolute;left:50%;top:58%;transform:translate(-50%,-50%);font-size:13px;white-space:nowrap}#reload{position:absolute;right:110px;bottom:35px}#stats{max-width:96vw;overflow:hidden;font-size:11px}#message{top:64%;}#life.low{color:#ff766d}
 </style></head><body><canvas id="game"></canvas><div id="hud">
-<div id="top" class="panel"><b>BR MOBILE · v2.5</b><br>Campo de treinamento<br><span id="status">Preparando…</span></div>
+<div id="top" class="panel"><b>BR MOBILE · v3.0</b><br>Campo de treinamento<br><span id="status">Preparando…</span></div>
 <div id="stats" class="panel">VIDA <b id="life">100</b>　|　MUNIÇÃO <b id="ammo">30</b>/30　|　ROBÔS <b id="botsLeft">4</b>　|　ELIMINAÇÕES <b id="kills">0</b></div>
 <div id="help" class="panel">Arraste: mirar<br>Joystick: mover<br>Botão vermelho: disparar</div><div id="cross">+</div><div id="message" class="panel">MISSÃO: sobreviva e elimine os robôs!</div>
 <div id="stick"><div id="nub"></div></div><button id="camera">1ª / 3ª pessoa</button><button id="reload">RECARREGAR</button><button id="fire">ATIRAR</button></div>
@@ -53,7 +53,8 @@ for(let i=0;i<26000;i++){const x=Math.random()*w,y=Math.random()*h;g.globalAlpha
 for(let i=0;i<500;i++){g.globalAlpha=.1;g.fillStyle='#c6b27c';g.beginPath();g.ellipse(Math.random()*w,Math.random()*h,2+Math.random()*5,1+Math.random()*3,0,0,Math.PI*2);g.fill()}g.globalAlpha=1});
 groundTex.repeat.set(12,12);const floor=new THREE.Mesh(new THREE.CircleGeometry(115,96),new THREE.MeshStandardMaterial({map:groundTex,roughness:1}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
 const pathTex=canvasTex(512,512,(g,w,h)=>{g.clearRect(0,0,w,h);g.fillStyle='#b69a69';g.globalAlpha=.9;g.beginPath();g.moveTo(190,0);g.bezierCurveTo(250,130,90,240,210,512);g.lineTo(330,512);g.bezierCurveTo(210,250,390,140,270,0);g.closePath();g.fill();g.globalAlpha=1});
-const path=new THREE.Mesh(new THREE.PlaneGeometry(17,155),new THREE.MeshStandardMaterial({map:pathTex,transparent:true,roughness:1,depthWrite:false}));path.rotation.x=-Math.PI/2;path.position.set(2,.035,-3);scene.add(path);
+const pathMat=new THREE.MeshStandardMaterial({map:pathTex,transparent:true,roughness:1,depthWrite:false});
+const path=new THREE.Mesh(new THREE.PlaneGeometry(17,155),pathMat);path.rotation.x=-Math.PI/2;path.position.set(2,.035,-3);scene.add(path);
 // Casca estilizada de jogo: sem fotografia externa aplicada ao tronco.
 const barkMat=new THREE.MeshStandardMaterial({color:0x765038,roughness:1});
 const leafMats=[M(0x183f26),M(0x24552e),M(0x326b38),M(0x477e43),M(0x285b31),M(0x568747)];
@@ -123,7 +124,13 @@ function applyPBRSet(asset,repeatX,repeatY,match){
   });
  });
 }
-applyPBRSet('grass_ground',12,12,m=>m.map===groundTex);
+// v3.0: conjuntos PBR CC0 reais (albedo/diffuse + normal + roughness), 2K.
+// Piso tropical com folhas, gravetos e musgo; substitui o mapa-base genérico do solo.
+applyPBRSet('forrest_ground_01',14,14,m=>m.map===groundTex);
+// Trilha de terra batida com relevo próprio, separada do material do gramado.
+applyPBRSet('brown_mud_03',3,18,m=>m===pathMat);
+// Casca real PBR nos troncos e galhos, sem aplicar fotografia na copa das árvores.
+applyPBRSet('bark_brown_02',1.5,2,m=>m===barkMat);
 applyPBRSet('plastered_wall',2,1,m=>m.map===wallTex);
 // O telhado usa tileMat com roofTex; identificar pelo mapa evita deixar a textura sem aplicação.
 applyPBRSet('roof_tiles',2,2,m=>m.map===roofTex);
