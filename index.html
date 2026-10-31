@@ -199,7 +199,7 @@ for(let i=0;i<4;i++){
   const model=gltf.scene;
   model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material){o.material.side=THREE.FrontSide;o.material.needsUpdate=true;}}});
   const bounds=new THREE.Box3().setFromObject(model),size=bounds.getSize(new THREE.Vector3());
-  if(size.y>0){const scale=2.12/size.y;model.scale.setScalar(scale);const scaledBounds=new THREE.Box3().setFromObject(model);model.position.y-=scaledBounds.min.y;}
+  if(size.y>0){const scale=2.5/size.y;model.scale.setScalar(scale);const scaledBounds=new THREE.Box3().setFromObject(model);model.position.y-=scaledBounds.min.y;}
   model.rotation.y=Math.PI;
   model.position.x=0;model.position.z=0;
   const root=new THREE.Group();root.add(model);root.position.copy(bot.home);
@@ -229,6 +229,6 @@ if(player.userData.rifle)player.userData.rifle.rotation.x=-.08+Math.sin(walkPhas
  for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];b.mesh.position.addScaledVector(b.dir,dt*42);b.life-=dt;let hit=false;for(const bot of bots){if(bot.alive){const center=bot.mesh.position.clone().add(new THREE.Vector3(0,1.2,0));if(b.mesh.position.distanceTo(center)<.85){bot.hp--;hit=true;if(bot.hp<=0){bot.alive=false;if(bot.animMixer){setNPCAction(bot,'Death',true);setTimeout(()=>{bot.mesh.visible=false},1500)}else bot.mesh.visible=false;kills++;updateHUD();document.querySelector("#status").textContent="Robô eliminado!";if(kills===4)document.querySelector("#message").textContent="ÁREA LIMPA! Você venceu esta rodada."}else document.querySelector("#status").textContent="Acertou! Restam "+bot.hp+" pontos";break}}}if(hit||b.life<=0){scene.remove(b.mesh);bullets.splice(i,1)}}
 // Projéteis inimigos causam dano; o breve intervalo evita dano instantâneo em sequência.
  for(let i=enemyBullets.length-1;i>=0;i--){const b=enemyBullets[i];b.mesh.position.addScaledVector(b.dir,dt*19);b.life-=dt;if(b.mesh.position.distanceTo(player.position.clone().add(new THREE.Vector3(0,1.1,0)))<.85&&playerHitCooldown<=0){life=Math.max(0,life-12);playerHitCooldown=.7;updateHUD();document.querySelector("#status").textContent=life===0?"Você foi derrubado! Atualize a página para reiniciar.":"Você foi atingido!";scene.remove(b.mesh);enemyBullets.splice(i,1);continue}if(b.life<=0){scene.remove(b.mesh);enemyBullets.splice(i,1)}}
- let target=player.position.clone().add(new THREE.Vector3(0,first?1.65:2.0,0));if(first){camera.position.copy(target)}else{camera.position.copy(target).add(new THREE.Vector3(Math.sin(yaw)*6,2.25,Math.cos(yaw)*6))}camera.lookAt(target.clone().add(new THREE.Vector3(-Math.sin(yaw)*18,Math.sin(pitch)*18,-Math.cos(yaw)*18)));renderer.render(scene,camera)}
+ let target=player.position.clone().add(new THREE.Vector3(0,first?1.65:2.0,0));if(first){camera.position.copy(target)}else{camera.position.copy(target).add(new THREE.Vector3(Math.sin(yaw)*6,2.25,Math.cos(yaw)*6))}camera.lookAt(target.clone().add(new THREE.Vector3(-Math.sin(yaw)*2,Math.sin(pitch)*2,-Math.cos(yaw)*2)));renderer.render(scene,camera)}
 animate();document.querySelector('#status').textContent='4 robôs de treino disponíveis';addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script></body></html>
