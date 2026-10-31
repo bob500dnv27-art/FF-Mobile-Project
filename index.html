@@ -10,8 +10,38 @@
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 function canvasTex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return t}
-const skyTex=canvasTex(1024,512,(g,w,h)=>{const q=g.createLinearGradient(0,0,0,h);q.addColorStop(0,'#286b9a');q.addColorStop(.5,'#83c6d2');q.addColorStop(1,'#e6d8b0');g.fillStyle=q;g.fillRect(0,0,w,h);for(let i=0;i<45;i++){g.globalAlpha=.13;g.fillStyle='#fff';g.beginPath();g.ellipse((i*173)%w,40+(i*71)%230,55+(i%5)*12,12+(i%3)*5,0,0,Math.PI*2);g.fill()}g.globalAlpha=1});skyTex.mapping=THREE.EquirectangularReflectionMapping;
-const scene=new THREE.Scene();scene.background=skyTex;scene.fog=new THREE.Fog(0x9bc7d0,75,190);
+const skyTex=canvasTex(2048,1024,(g,w,h)=>{
+ const sky=g.createLinearGradient(0,0,0,h);
+ sky.addColorStop(0,'#174d78');sky.addColorStop(.28,'#438db2');sky.addColorStop(.58,'#91c9d4');sky.addColorStop(.82,'#d6d9c2');sky.addColorStop(1,'#f0d9ad');
+ g.fillStyle=sky;g.fillRect(0,0,w,h);
+ // Brilho atmosférico quente próximo ao horizonte
+ const glow=g.createRadialGradient(w*.69,h*.64,8,w*.69,h*.64,h*.48);
+ glow.addColorStop(0,'rgba(255,239,198,.48)');glow.addColorStop(.35,'rgba(255,231,185,.18)');glow.addColorStop(1,'rgba(255,231,185,0)');
+ g.fillStyle=glow;g.fillRect(0,0,w,h);
+ // Nuvens tropicais volumétricas: camadas suaves, sombra inferior e bordas iluminadas
+ let seed=73421;const rnd=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
+ for(let layer=0;layer<3;layer++){
+  const count=[34,48,38][layer];
+  for(let i=0;i<count;i++){
+   const x=rnd()*w,y=h*(.22+rnd()*.43),rx=(90+rnd()*190)*(layer===2?.7:1),ry=(22+rnd()*55)*(layer===2?.55:1);
+   const a=.055+rnd()*.075;
+   const shade=g.createRadialGradient(x,y+ry*.18,ry*.08,x,y,rx);
+   shade.addColorStop(0,layer===2?'rgba(255,255,255,'+(a*.65)+')':'rgba(255,255,255,'+a+')');
+   shade.addColorStop(.58,'rgba(255,255,255,'+(a*.62)+')');shade.addColorStop(1,'rgba(255,255,255,0)');
+   g.fillStyle=shade;g.beginPath();g.ellipse(x,y,rx,ry,0,0,Math.PI*2);g.fill();
+   if(layer!==2){g.fillStyle='rgba(91,123,133,'+(a*.42)+')';g.beginPath();g.ellipse(x+rx*.08,y+ry*.38,rx*.72,ry*.42,0,0,Math.PI*2);g.fill()}
+   for(let p=0;p<5;p++){const px=x+(rnd()-.5)*rx*1.45,py=y+(rnd()-.5)*ry*.8,pr=18+rnd()*48;
+    const puff=g.createRadialGradient(px-pr*.2,py-pr*.25,2,px,py,pr);
+    puff.addColorStop(0,'rgba(255,255,255,'+(a*1.8)+')');puff.addColorStop(1,'rgba(255,255,255,0)');
+    g.fillStyle=puff;g.beginPath();g.arc(px,py,pr,0,Math.PI*2);g.fill();
+   }
+  }
+ }
+ // Véus finos de cirros em altitude
+ for(let i=0;i<95;i++){const x=rnd()*w,y=h*(.12+rnd()*.25);g.globalAlpha=.025+rnd()*.045;g.strokeStyle='#fff';g.lineWidth=1+rnd()*3;g.beginPath();g.moveTo(x,y);g.bezierCurveTo(x+45,y-9,x+105,y+8,x+190+rnd()*100,y-5);g.stroke()}
+ g.globalAlpha=1;
+});skyTex.mapping=THREE.EquirectangularReflectionMapping;
+const scene=new THREE.Scene();scene.background=skyTex;scene.fog=new THREE.Fog(0xa9cbd0,82,205);
 const camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.1,250);
 const renderer=new THREE.WebGLRenderer({canvas:document.querySelector('#game'),antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;
 scene.add(new THREE.HemisphereLight(0xd9efff,0x536044,2));const sun=new THREE.DirectionalLight(0xffedce,2.0);sun.position.set(-25,45,20);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-90;sun.shadow.camera.right=90;sun.shadow.camera.top=90;sun.shadow.camera.bottom=-90;scene.add(sun);
