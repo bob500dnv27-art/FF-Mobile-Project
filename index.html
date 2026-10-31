@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>BR Mobile v3.0</title>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>BR Mobile v4.0</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#8bb6ad;font-family:system-ui;color:white}canvas{display:block;width:100%;height:100%;touch-action:none}#hud{position:fixed;inset:0;pointer-events:none;text-shadow:0 2px 4px #000}.panel{background:#071b22c9;border:1px solid #ffffff55;border-radius:10px;padding:8px 11px}#top{position:absolute;top:10px;left:10px;font-size:12px}#stats{position:absolute;top:10px;left:50%;transform:translateX(-50%);font-size:12px;white-space:nowrap}#help{position:absolute;right:10px;top:10px;font-size:11px;text-align:right}button{pointer-events:auto;color:white;background:#102c35dd;border:1px solid #ffffff99;border-radius:12px;padding:12px;font-weight:700}#camera{position:absolute;right:12px;bottom:102px}#fire{position:absolute;right:20px;bottom:22px;width:78px;height:78px;border-radius:50%;background:#a83d32}#stick{pointer-events:auto;position:absolute;left:22px;bottom:25px;width:116px;height:116px;border:2px solid #ffffff99;border-radius:50%;background:#0b263655;touch-action:none}#nub{position:absolute;left:34px;top:34px;width:44px;height:44px;border-radius:50%;background:#ffffffbb}#cross{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:27px}#message{position:absolute;left:50%;top:58%;transform:translate(-50%,-50%);font-size:13px;white-space:nowrap}#reload{position:absolute;right:110px;bottom:35px}#stats{max-width:96vw;overflow:hidden;font-size:11px}#message{top:64%;}#life.low{color:#ff766d}
 </style></head><body><canvas id="game"></canvas><div id="hud">
-<div id="top" class="panel"><b>BR MOBILE · v3.0</b><br>Campo de treinamento<br><span id="status">Preparando…</span></div>
+<div id="top" class="panel"><b>BR MOBILE · v4.0</b><br>Campo de treinamento<br><span id="status">Preparando…</span></div>
 <div id="stats" class="panel">VIDA <b id="life">100</b>　|　MUNIÇÃO <b id="ammo">30</b>/30　|　ROBÔS <b id="botsLeft">4</b>　|　ELIMINAÇÕES <b id="kills">0</b></div>
 <div id="help" class="panel">Arraste: mirar<br>Joystick: mover<br>Botão vermelho: disparar</div><div id="cross">+</div><div id="message" class="panel">MISSÃO: sobreviva e elimine os robôs!</div>
 <div id="stick"><div id="nub"></div></div><button id="camera">1ª / 3ª pessoa</button><button id="reload">RECARREGAR</button><button id="fire">ATIRAR</button></div>
@@ -108,21 +108,14 @@ function loadPBRMap(url,repeatX,repeatY,isColor,done){
 }
 function applyPBRSet(asset,repeatX,repeatY,match){
  const root='https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/'+asset+'/'+asset+'_';
- loadPBRMap(root+'diff_2k.jpg',repeatX,repeatY,true,tex=>{
-  scene.traverse(obj=>{if(!obj.isMesh)return;const mats=Array.isArray(obj.material)?obj.material:[obj.material];
-   for(const mat of mats)if(match(mat)){mat.map=tex;mat.color.set(0xffffff);mat.needsUpdate=true;}
-  });
- });
- loadPBRMap(root+'nor_gl_2k.jpg',repeatX,repeatY,false,tex=>{
-  scene.traverse(obj=>{if(!obj.isMesh)return;const mats=Array.isArray(obj.material)?obj.material:[obj.material];
-   for(const mat of mats)if(match(mat)){mat.normalMap=tex;mat.normalScale.set(.72,.72);mat.needsUpdate=true;}
-  });
- });
- loadPBRMap(root+'rough_2k.jpg',repeatX,repeatY,false,tex=>{
-  scene.traverse(obj=>{if(!obj.isMesh)return;const mats=Array.isArray(obj.material)?obj.material:[obj.material];
-   for(const mat of mats)if(match(mat)){mat.roughnessMap=tex;mat.roughness=1;mat.needsUpdate=true;}
-  });
- });
+ // Captura os materiais uma única vez: depois que o diffuse entra, o mapa muda
+ // e o teste original deixaria normal/roughness de fora.
+ const targets=[];
+ scene.traverse(obj=>{if(!obj.isMesh)return;const mats=Array.isArray(obj.material)?obj.material:[obj.material];for(const mat of mats)if(match(mat)&&!targets.includes(mat))targets.push(mat)});
+ if(!targets.length){console.warn('Nenhum material encontrado para:',asset);return}
+ loadPBRMap(root+'diff_2k.jpg',repeatX,repeatY,true,tex=>{targets.forEach(mat=>{mat.map=tex;mat.color.set(0xffffff);mat.needsUpdate=true;});});
+ loadPBRMap(root+'nor_gl_2k.jpg',repeatX,repeatY,false,tex=>{targets.forEach(mat=>{mat.normalMap=tex;mat.normalScale.set(.72,.72);mat.needsUpdate=true;});});
+ loadPBRMap(root+'rough_2k.jpg',repeatX,repeatY,false,tex=>{targets.forEach(mat=>{mat.roughnessMap=tex;mat.roughness=1;mat.needsUpdate=true;});});
 }
 // v3.0: conjuntos PBR CC0 reais (albedo/diffuse + normal + roughness), 2K.
 // Piso tropical com folhas, gravetos e musgo; substitui o mapa-base genérico do solo.
@@ -131,6 +124,8 @@ applyPBRSet('forrest_ground_01',14,14,m=>m.map===groundTex);
 applyPBRSet('brown_mud_03',3,18,m=>m===pathMat);
 // Casca real PBR nos troncos e galhos, sem aplicar fotografia na copa das árvores.
 applyPBRSet('bark_brown_02',1.5,2,m=>m===barkMat);
+// Rochas do cenário com mapas PBR próprios (albedo, normal e roughness), CC0.
+applyPBRSet('rocks_ground_02',1.2,1.2,m=>m===rockMat);
 applyPBRSet('plastered_wall',2,1,m=>m.map===wallTex);
 // O telhado usa tileMat com roofTex; identificar pelo mapa evita deixar a textura sem aplicação.
 applyPBRSet('roof_tiles',2,2,m=>m.map===roofTex);
