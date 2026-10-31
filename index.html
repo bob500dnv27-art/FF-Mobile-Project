@@ -7,6 +7,7 @@
 <div id="stats" class="panel">VIDA 100　|　MUNIÇÃO <b id="ammo">30</b>/30　|　ROBÔS <b id="botsLeft">4</b></div>
 <div id="help" class="panel">Arraste a tela: olhar<br>Joystick: mover</div><div id="cross">+</div><div id="message" class="panel">Treinamento: acerte os robôs!</div>
 <div id="stick"><div id="nub"></div></div><button id="camera">1ª / 3ª pessoa</button><button id="reload">RECARREGAR</button><button id="fire">ATIRAR</button></div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
@@ -98,7 +99,7 @@ characterLoader.load(soldierAsset,(gltf)=>{
  document.querySelector('#status').textContent='Soldado 3D realista carregado';
 },undefined,(err)=>{
  console.error('Falha ao carregar soldado GLB:',err);
- document.querySelector('#status').textContent='Modelo 3D externo indisponível · usando reserva';
+ document.querySelector('#status').textContent='Cenário pronto · soldado reserva ativo';
 });
 let drag=null;const canvas=renderer.domElement;canvas.addEventListener('pointerdown',e=>{if(e.clientX>innerWidth*.28){drag={x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId)}});canvas.addEventListener('pointermove',e=>{if(drag){yaw-=(e.clientX-drag.x)*.005;pitch=Math.max(-.65,Math.min(.45,pitch-(e.clientY-drag.y)*.003));drag={x:e.clientX,y:e.clientY}}});canvas.addEventListener('pointerup',()=>drag=null);
 let mx=0,my=0;const stick=document.querySelector('#stick'),nub=document.querySelector('#nub');function stickMove(e){const r=stick.getBoundingClientRect(),x=e.clientX-r.left-r.width/2,y=e.clientY-r.top-r.height/2,d=Math.min(38,Math.hypot(x,y)),a=Math.atan2(y,x);mx=Math.cos(a)*d/38;my=Math.sin(a)*d/38;nub.style.transform='translate('+mx*35+'px,'+my*35+'px)'}function reset(){mx=my=0;nub.style.transform=''}stick.addEventListener('pointerdown',e=>{stick.setPointerCapture(e.pointerId);stickMove(e)});stick.addEventListener('pointermove',e=>{if(e.buttons)stickMove(e)});stick.addEventListener('pointerup',reset);stick.addEventListener('pointercancel',reset);
