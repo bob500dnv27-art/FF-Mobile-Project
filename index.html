@@ -3,7 +3,7 @@
 <style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#8bb6ad;font-family:system-ui;color:white}canvas{display:block;width:100%;height:100%;touch-action:none}#hud{position:fixed;inset:0;pointer-events:none;text-shadow:0 2px 4px #000}.panel{background:#071b22c9;border:1px solid #ffffff55;border-radius:10px;padding:8px 11px}#top{position:absolute;top:10px;left:10px;font-size:12px}#stats{position:absolute;top:10px;left:50%;transform:translateX(-50%);font-size:12px;white-space:nowrap}#help{position:absolute;right:10px;top:10px;font-size:11px;text-align:right}button{pointer-events:auto;color:white;background:#102c35dd;border:1px solid #ffffff99;border-radius:12px;padding:12px;font-weight:700}#camera{position:absolute;right:12px;bottom:102px}#fire{position:absolute;right:20px;bottom:22px;width:78px;height:78px;border-radius:50%;background:#a83d32}#stick{pointer-events:auto;position:absolute;left:22px;bottom:25px;width:116px;height:116px;border:2px solid #ffffff99;border-radius:50%;background:#0b263655;touch-action:none}#nub{position:absolute;left:34px;top:34px;width:44px;height:44px;border-radius:50%;background:#ffffffbb}#cross{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:27px}#message{position:absolute;left:50%;top:58%;transform:translate(-50%,-50%);font-size:13px;white-space:nowrap}#reload{position:absolute;right:110px;bottom:35px}
 </style></head><body><canvas id="game"></canvas><div id="hud">
-<div id="top" class="panel"><b>BR MOBILE · v0.4</b><br>Campo de treinamento<br><span id="status">Preparando…</span></div>
+<div id="top" class="panel"><b>BR MOBILE · v0.5</b><br>Campo de treinamento<br><span id="status">Preparando…</span></div>
 <div id="stats" class="panel">VIDA 100　|　MUNIÇÃO <b id="ammo">30</b>/30　|　ROBÔS <b id="botsLeft">4</b></div>
 <div id="help" class="panel">Arraste a tela: olhar<br>Joystick: mover</div><div id="cross">+</div><div id="message" class="panel">Treinamento: acerte os robôs!</div>
 <div id="stick"><div id="nub"></div></div><button id="camera">1ª / 3ª pessoa</button><button id="reload">RECARREGAR</button><button id="fire">ATIRAR</button></div>
@@ -23,14 +23,34 @@ for(let i=0;i<55;i++){const a=Math.random()*Math.PI*2,r=20+Math.random()*65;tree
 function house(x,z){const g=new THREE.Group(),b=new THREE.Mesh(new THREE.BoxGeometry(8,4,6),cream),r=new THREE.Mesh(new THREE.ConeGeometry(5.7,2.3,4),M(0x654c3b));b.position.y=2;r.position.y=5;r.rotation.y=Math.PI/4;g.add(b,r);g.position.set(x,0,z);scene.add(g)}house(24,-28);house(-28,-35);house(35,25);
 function box(parent,w,h,d,color,x,y,z){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),M(color));o.position.set(x,y,z);o.castShadow=true;parent.add(o);return o}
 function limb(parent,a,b,r1,r2,color){const v=new THREE.Vector3().subVectors(b,a),o=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,v.length(),9),M(color));o.position.copy(a).add(b).multiplyScalar(.5);o.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v.normalize());o.castShadow=true;parent.add(o)}
-function soldier(colors={shirt:0x344c60,pants:0x26313a,skin:0xc58f6b,gear:0x354b32}){const g=new THREE.Group();const shirt=M(colors.shirt),pants=M(colors.pants),skin=M(colors.skin),gear=M(colors.gear);
-const torso=new THREE.Mesh(new THREE.BoxGeometry(.82,.92,.42),shirt);torso.position.y=1.48;g.add(torso);
-const vest=new THREE.Mesh(new THREE.BoxGeometry(.72,.62,.46),gear);vest.position.set(0,1.48,-.015);g.add(vest);
-const head=new THREE.Mesh(new THREE.SphereGeometry(.25,14,12),skin);head.position.y=2.12;g.add(head);
-const helmet=new THREE.Mesh(new THREE.SphereGeometry(.28,14,10,0,Math.PI*2,0,Math.PI/2),M(0x344936));helmet.position.y=2.22;g.add(helmet);
-for(const x of [-.23,.23]){limb(g,new THREE.Vector3(x,1.12,0),new THREE.Vector3(x*1.08,.58,.02),.16,.12,colors.pants);limb(g,new THREE.Vector3(x<0?-.43:.43,1.78,0),new THREE.Vector3(x<0?-.48:.48,1.25,-.2),.13,.1,colors.shirt)}
-box(g,.2,.13,.48,0x151b1b,.48,1.36,-.3);box(g,.1,.1,.56,0x292d2d,.48,1.39,-.72);box(g,.13,.25,.16,0x493a2d,.48,1.2,-.34);
-g.traverse(o=>{if(o.isMesh)o.castShadow=true});return g}
+function capsuleBetween(parent,a,b,r,color){const v=new THREE.Vector3().subVectors(b,a);const mesh=new THREE.Mesh(new THREE.CapsuleGeometry(r,Math.max(.05,v.length()-2*r),5,12),M(color));mesh.position.copy(a).add(b).multiplyScalar(.5);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v.normalize());mesh.castShadow=true;parent.add(mesh);return mesh}
+function ellipsoid(parent,color,pos,scale,segments=20){const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,segments,16),M(color));mesh.position.set(...pos);mesh.scale.set(...scale);mesh.castShadow=true;parent.add(mesh);return mesh}
+function soldier(colors={shirt:0x344c60,pants:0x26313a,skin:0xc58f6b,gear:0x354b32}){
+ const g=new THREE.Group(),shirt=colors.shirt,pants=colors.pants,skin=colors.skin,gear=colors.gear;
+ // Corpo com volumes arredondados, proporções humanas e articulações suaves.
+ ellipsoid(g,shirt,[0,1.48,0],[.39,.53,.25]);
+ ellipsoid(g,gear,[0,1.49,-.035],[.385,.39,.255]); // colete acolchoado
+ ellipsoid(g,0x202c30,[0,1.48,-.245],[.075,.34,.025]); // faixa central do colete
+ for(const x of [-.25,.25]){
+   ellipsoid(g,gear,[x,1.72,-.035],[.16,.17,.22]); // ombreiras
+   capsuleBetween(g,new THREE.Vector3(x,1.72,0),new THREE.Vector3(x*1.22,1.34,-.19),.115,shirt);
+   ellipsoid(g,skin,[x*1.22,1.32,-.2],[.105,.105,.105]);
+   capsuleBetween(g,new THREE.Vector3(x*.9,1.12,0),new THREE.Vector3(x*1.02,.57,.015),.145,pants);
+   ellipsoid(g,0x30302b,[x*1.02,.55,0],[.15,.13,.16]); // joelheira
+   ellipsoid(g,0x171d20,[x*1.02,.16,-.09],[.17,.16,.29]); // bota
+ }
+ ellipsoid(g,skin,[0,2.08,0],[.225,.285,.215],24);
+ ellipsoid(g,skin,[-.225,2.08,0],[.055,.09,.07]);ellipsoid(g,skin,[.225,2.08,0],[.055,.09,.07]);
+ // Capacete arredondado, com aba e tira.
+ ellipsoid(g,0x344936,[0,2.245,0],[.255,.17,.245],24);
+ ellipsoid(g,0x26372d,[0,2.19,-.045],[.275,.045,.26],24);
+ ellipsoid(g,0x1e2926,[0,2.035,-.19],[.13,.035,.025]);
+ // Bolsas, fivelas e tiras do equipamento.
+ for(const x of [-.24,.24]){ellipsoid(g,gear,[x,1.42,-.245],[.105,.14,.07]);ellipsoid(g,0x9a8054,[x,1.42,-.31],[.035,.035,.018])}
+ capsuleBetween(g,new THREE.Vector3(-.31,1.82,-.08),new THREE.Vector3(-.12,1.2,-.2),.035,0x9a8054);
+ capsuleBetween(g,new THREE.Vector3(.31,1.82,-.08),new THREE.Vector3(.12,1.2,-.2),.035,0x9a8054);
+ g.traverse(o=>{if(o.isMesh)o.castShadow=true});return g
+}
 const player=soldier();scene.add(player);player.position.set(0,0,0);
 let yaw=0,pitch=-.08,first=false;const keys={};addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key.toLowerCase()==='c')toggle()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
 function toggle(){first=!first;player.visible=!first;document.querySelector('#status').textContent=first?'Primeira pessoa':'Terceira pessoa'}document.querySelector('#camera').onclick=toggle;
