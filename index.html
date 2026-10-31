@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>BR Mobile v1.8</title>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>BR Mobile v1.9</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#8bb6ad;font-family:system-ui;color:white}canvas{display:block;width:100%;height:100%;touch-action:none}#hud{position:fixed;inset:0;pointer-events:none;text-shadow:0 2px 4px #000}.panel{background:#071b22c9;border:1px solid #ffffff55;border-radius:10px;padding:8px 11px}#top{position:absolute;top:10px;left:10px;font-size:12px}#stats{position:absolute;top:10px;left:50%;transform:translateX(-50%);font-size:12px;white-space:nowrap}#help{position:absolute;right:10px;top:10px;font-size:11px;text-align:right}button{pointer-events:auto;color:white;background:#102c35dd;border:1px solid #ffffff99;border-radius:12px;padding:12px;font-weight:700}#camera{position:absolute;right:12px;bottom:102px}#fire{position:absolute;right:20px;bottom:22px;width:78px;height:78px;border-radius:50%;background:#a83d32}#stick{pointer-events:auto;position:absolute;left:22px;bottom:25px;width:116px;height:116px;border:2px solid #ffffff99;border-radius:50%;background:#0b263655;touch-action:none}#nub{position:absolute;left:34px;top:34px;width:44px;height:44px;border-radius:50%;background:#ffffffbb}#cross{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:27px}#message{position:absolute;left:50%;top:58%;transform:translate(-50%,-50%);font-size:13px;white-space:nowrap}#reload{position:absolute;right:110px;bottom:35px}
 </style></head><body><canvas id="game"></canvas><div id="hud">
-<div id="top" class="panel"><b>BR MOBILE · v1.8</b><br>Campo de treinamento<br><span id="status">Preparando…</span></div>
+<div id="top" class="panel"><b>BR MOBILE · v1.9</b><br>Campo de treinamento<br><span id="status">Preparando…</span></div>
 <div id="stats" class="panel">VIDA 100　|　MUNIÇÃO <b id="ammo">30</b>/30　|　ROBÔS <b id="botsLeft">4</b></div>
 <div id="help" class="panel">Arraste a tela: olhar<br>Joystick: mover</div><div id="cross">+</div><div id="message" class="panel">Treinamento: acerte os robôs!</div>
 <div id="stick"><div id="nub"></div></div><button id="camera">1ª / 3ª pessoa</button><button id="reload">RECARREGAR</button><button id="fire">ATIRAR</button></div>
@@ -27,13 +27,21 @@ skyDome.renderOrder=-10;scene.add(skyDome);
 // Nuvens em volumes macios, próprias de cenário de jogo; sem fotos nem silhuetas de vegetação.
 const cloudMat=new THREE.MeshStandardMaterial({color:0xf4f8ff,roughness:1,metalness:0});
 const cloudShade=new THREE.MeshStandardMaterial({color:0xd7e8f7,roughness:1,metalness:0});
-function makeGameCloud(x,y,z,s=1){
+function makeGameCloud(x,y,z,s=1,turn=0){
  const cloud=new THREE.Group();
- const puffs=[[-1.25,0,0,1.35,.62,.78],[-.45,.38,0,1.25,.88,.9],[.55,.25,.08,1.45,.82,.92],[1.35,-.02,0,1.05,.58,.72],[.05,-.18,.18,1.75,.48,.95]];
- puffs.forEach((p,i)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(1,16,12),i===0?cloudShade:cloudMat);m.position.set(p[0]*s,p[1]*s,p[2]*s);m.scale.set(p[3]*s,p[4]*s,p[5]*s);cloud.add(m)});
- cloud.position.set(x,y,z);scene.add(cloud);return cloud;
+ // Silhuetas variadas: volumes sobrepostos, tamanhos e alturas diferentes.
+ const puffs=[[-1.45,0,0,1.28,.58,.78],[-.62,.34,.08,1.12,.82,.86],[.25,.18,-.08,1.48,.76,.92],[1.38,-.04,.02,1.02,.55,.72],[-.12,-.17,.12,1.62,.43,.88],[.82,.52,.05,.72,.56,.66]];
+ puffs.forEach((p,i)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(1,18,14),i===0?cloudShade:cloudMat);m.position.set(p[0]*s,p[1]*s,p[2]*s);m.scale.set(p[3]*s,p[4]*s,p[5]*s);cloud.add(m)});
+ cloud.position.set(x,y,z);cloud.rotation.y=turn;scene.add(cloud);return cloud;
 }
-for(let i=0;i<18;i++){const a=i*Math.PI*2/18;const r=105+(i%3)*17;makeGameCloud(Math.cos(a)*r,39+(i%4)*5,Math.sin(a)*r,.85+(i%3)*.22);}
+// Camada de nuvens espalhada pelos 360 graus, em profundidades e alturas alternadas.
+for(let i=0;i<42;i++){
+ const a=i*2.399963+(Math.random()-.5)*.22;
+ const r=82+Math.random()*78;
+ const y=32+Math.random()*28;
+ const s=.62+Math.random()*1.05;
+ makeGameCloud(Math.cos(a)*r,y,Math.sin(a)*r,s,Math.random()*Math.PI*2);
+}
 const camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.1,250);
 const renderer=new THREE.WebGLRenderer({canvas:document.querySelector('#game'),antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;
 scene.add(new THREE.HemisphereLight(0xd9efff,0x536044,2));const sun=new THREE.DirectionalLight(0xffedce,2.0);sun.position.set(-25,45,20);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-90;sun.shadow.camera.right=90;sun.shadow.camera.top=90;sun.shadow.camera.bottom=-90;scene.add(sun);
