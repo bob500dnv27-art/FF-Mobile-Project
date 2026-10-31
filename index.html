@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>BR Mobile v1.5.1</title>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>BR Mobile v1.7</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#8bb6ad;font-family:system-ui;color:white}canvas{display:block;width:100%;height:100%;touch-action:none}#hud{position:fixed;inset:0;pointer-events:none;text-shadow:0 2px 4px #000}.panel{background:#071b22c9;border:1px solid #ffffff55;border-radius:10px;padding:8px 11px}#top{position:absolute;top:10px;left:10px;font-size:12px}#stats{position:absolute;top:10px;left:50%;transform:translateX(-50%);font-size:12px;white-space:nowrap}#help{position:absolute;right:10px;top:10px;font-size:11px;text-align:right}button{pointer-events:auto;color:white;background:#102c35dd;border:1px solid #ffffff99;border-radius:12px;padding:12px;font-weight:700}#camera{position:absolute;right:12px;bottom:102px}#fire{position:absolute;right:20px;bottom:22px;width:78px;height:78px;border-radius:50%;background:#a83d32}#stick{pointer-events:auto;position:absolute;left:22px;bottom:25px;width:116px;height:116px;border:2px solid #ffffff99;border-radius:50%;background:#0b263655;touch-action:none}#nub{position:absolute;left:34px;top:34px;width:44px;height:44px;border-radius:50%;background:#ffffffbb}#cross{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:27px}#message{position:absolute;left:50%;top:58%;transform:translate(-50%,-50%);font-size:13px;white-space:nowrap}#reload{position:absolute;right:110px;bottom:35px}
 </style></head><body><canvas id="game"></canvas><div id="hud">
-<div id="top" class="panel"><b>BR MOBILE · v1.5.1</b><br>Campo de treinamento<br><span id="status">Preparando…</span></div>
+<div id="top" class="panel"><b>BR MOBILE · v1.7</b><br>Campo de treinamento<br><span id="status">Preparando…</span></div>
 <div id="stats" class="panel">VIDA 100　|　MUNIÇÃO <b id="ammo">30</b>/30　|　ROBÔS <b id="botsLeft">4</b></div>
 <div id="help" class="panel">Arraste a tela: olhar<br>Joystick: mover</div><div id="cross">+</div><div id="message" class="panel">Treinamento: acerte os robôs!</div>
 <div id="stick"><div id="nub"></div></div><button id="camera">1ª / 3ª pessoa</button><button id="reload">RECARREGAR</button><button id="fire">ATIRAR</button></div>
@@ -36,10 +36,8 @@ for(let i=0;i<500;i++){g.globalAlpha=.1;g.fillStyle='#c6b27c';g.beginPath();g.el
 groundTex.repeat.set(12,12);const floor=new THREE.Mesh(new THREE.CircleGeometry(115,96),new THREE.MeshStandardMaterial({map:groundTex,roughness:1}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
 const pathTex=canvasTex(512,512,(g,w,h)=>{g.clearRect(0,0,w,h);g.fillStyle='#b69a69';g.globalAlpha=.9;g.beginPath();g.moveTo(190,0);g.bezierCurveTo(250,130,90,240,210,512);g.lineTo(330,512);g.bezierCurveTo(210,250,390,140,270,0);g.closePath();g.fill();g.globalAlpha=1});
 const path=new THREE.Mesh(new THREE.PlaneGeometry(17,155),new THREE.MeshStandardMaterial({map:pathTex,transparent:true,roughness:1,depthWrite:false}));path.rotation.x=-Math.PI/2;path.position.set(2,.035,-3);scene.add(path);
-// Casca fotográfica real de palmeira (Poly Haven, CC0); material de segurança caso a rede falhe.
-const barkMat=M(0x806044,.94);
-const barkLoader=new THREE.TextureLoader();barkLoader.setCrossOrigin('anonymous');
-barkLoader.load('https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/palm_tree_bark_diff_2k.jpg',t=>{t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(1,2);barkMat.map=t;barkMat.needsUpdate=true;},undefined,e=>console.warn('Textura de casca não carregou; usando material de segurança.',e));
+// Casca estilizada de jogo: sem fotografia externa aplicada ao tronco.
+const barkMat=new THREE.MeshStandardMaterial({color:0x765038,roughness:1});
 const leafMats=[M(0x183f26),M(0x24552e),M(0x326b38),M(0x477e43),M(0x285b31),M(0x568747)];
 const leafGeo=new THREE.IcosahedronGeometry(1,1);
 function tree(x,z,s=1){const g=new THREE.Group();
@@ -50,6 +48,8 @@ function tree(x,z,s=1){const g=new THREE.Group();
  for(let i=0;i<31;i++){const a=i*2.399,rad=(.25+Math.random()*1.15)*s,y=(3.55+Math.random()*2.05)*s;const crown=new THREE.Mesh(leafGeo,leafMats[Math.floor(Math.random()*leafMats.length)]);crown.position.set(Math.cos(a)*rad,y,Math.sin(a)*rad);const k=(.48+Math.random()*.72)*s;crown.scale.set(k*(1.05+Math.random()*.45),k*(.62+Math.random()*.3),k*(.9+Math.random()*.35));crown.rotation.set(Math.random()*.35,a,Math.random()*.3);crown.castShadow=true;g.add(crown)}
  g.position.set(x,0,z);g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});scene.add(g);return g}
 const houseZones=[{x:24,z:-28,r:13},{x:-28,z:-35,r:14},{x:35,z:25,r:13}];function clearOfHouses(x,z,p=0){return houseZones.every(h=>Math.hypot(x-h.x,z-h.z)>h.r+p)}let tc=0,tries=0;while(tc<68&&tries<1000){tries++;const a=Math.random()*Math.PI*2,r=19+Math.random()*70,x=Math.cos(a)*r,z=Math.sin(a)*r;if(!clearOfHouses(x,z,3))continue;tree(x,z,.72+Math.random()*.72);tc++}
+// Cinturão de vegetação DENTRO do limite físico do mapa: árvores visíveis até a borda, sem plano infinito.
+for(let i=0;i<52;i++){const a=(i/52)*Math.PI*2+(Math.random()-.5)*.09;const r=91+Math.random()*17;const x=Math.cos(a)*r,z=Math.sin(a)*r;if(clearOfHouses(x,z,4))tree(x,z,.9+Math.random()*.65)}
 // Grama em tufos instanciados: muito detalhe visual com poucas chamadas de desenho.
 const grassGeo=new THREE.ConeGeometry(.075,.42,4);grassGeo.translate(0,.19,0);
 const grassMat=new THREE.MeshStandardMaterial({color:0x83a94c,roughness:1});
